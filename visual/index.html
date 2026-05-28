@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpsMonitor — Plataforma Operacional</title>
+
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- Estilos -->
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">
+        <div class="logo-icon">⬡</div>
+        <div class="logo-text">Ops<span>Monitor</span></div>
+      </div>
+    </div>
+
+    <div class="sidebar-label">Navegação</div>
+
+    <nav>
+      <a class="nav-item active" href="#">
+        <span class="nav-icon">⬛</span>
+        <span>Dashboard</span>
+      </a>
+      <a class="nav-item" href="#">
+        <span class="nav-icon">◈</span>
+        <span>Operações</span>
+      </a>
+      <a class="nav-item" href="#">
+        <span class="nav-icon">◉</span>
+        <span>Clientes</span>
+      </a>
+      <a class="nav-item" href="#" id="nav-alertas">
+        <span class="nav-icon">⚠</span>
+        <span>Alertas</span>
+        <span class="nav-badge" id="badge-alertas">0</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-label">Sistema</div>
+
+    <nav>
+      <a class="nav-item" href="#">
+        <span class="nav-icon">⚙</span>
+        <span>Configurações</span>
+      </a>
+      <a class="nav-item" href="#">
+        <span class="nav-icon">📡</span>
+        <span>Integrações</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-status">
+      <div class="status-indicator">
+        <div class="dot"></div>
+        <span id="conn-status" style="font-size:11px;">Conectado</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <main class="main">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div>
+        <div class="topbar-title">Dashboard Operacional</div>
+        <div class="topbar-sub" id="last-update">Carregando...</div>
+      </div>
+      <div class="topbar-spacer"></div>
+      <div class="realtime-tag">
+        <div class="realtime-dot"></div>
+        Realtime
+      </div>
+      <div class="topbar-time" id="clock">--:--:--</div>
+      <button class="refresh-btn" id="refresh-btn" onclick="loadAll()">
+        <span id="refresh-icon">↻</span> Atualizar
+      </button>
+    </header>
+
+    <!-- CONTENT -->
+    <div class="content">
+
+      <!-- KPI CARDS -->
+      <div class="kpi-grid">
+        <div class="kpi-card kpi-blue">
+          <div class="kpi-header">
+            <div class="kpi-label">Total Clientes</div>
+            <div class="kpi-icon icon-blue">👥</div>
+          </div>
+          <div class="kpi-value" id="kpi-clientes">—</div>
+          <div class="kpi-delta">Clientes cadastrados</div>
+        </div>
+
+        <div class="kpi-card kpi-green">
+          <div class="kpi-header">
+            <div class="kpi-label">Operações Ativas</div>
+            <div class="kpi-icon icon-green">⚡</div>
+          </div>
+          <div class="kpi-value" id="kpi-ativas">—</div>
+          <div class="kpi-delta">Status: ativo</div>
+        </div>
+
+        <div class="kpi-card kpi-amber">
+          <div class="kpi-header">
+            <div class="kpi-label">Sistemas Offline</div>
+            <div class="kpi-icon icon-amber">📴</div>
+          </div>
+          <div class="kpi-value" id="kpi-offline">—</div>
+          <div class="kpi-delta">Requer atenção</div>
+        </div>
+
+        <div class="kpi-card kpi-red">
+          <div class="kpi-header">
+            <div class="kpi-label">Alertas Críticos</div>
+            <div class="kpi-icon icon-red">🔔</div>
+          </div>
+          <div class="kpi-value" id="kpi-alertas">—</div>
+          <div class="kpi-delta">Últimas 24h</div>
+        </div>
+      </div>
+
+      <!-- N8N BANNER -->
+      <div class="n8n-card">
+        <div class="n8n-icon-wrap">🔗</div>
+        <div class="n8n-info">
+          <div class="n8n-title">Automação n8n + WhatsApp — Pronto para integrar</div>
+          <div class="n8n-desc">Configure webhooks no n8n para disparar notificações automáticas via WhatsApp quando alertas críticos forem gerados. Suporte a IA e automações orientadas a eventos.</div>
+        </div>
+        <div class="n8n-flows">
+          <div class="flow-tag">⚡ Alertas → WhatsApp</div>
+          <div class="flow-tag">🤖 IA Operacional</div>
+          <div class="flow-tag">📊 Relatórios Auto</div>
+        </div>
+      </div>
+
+      <!-- CHARTS ROW -->
+      <div class="section-grid-3">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <div class="panel-title-icon icon-blue" style="background:rgba(59,130,246,0.1)">📊</div>
+              Operações por Status
+            </div>
+          </div>
+          <div class="chart-wrap" style="height:220px">
+            <canvas id="chart-status"></canvas>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <div class="panel-title-icon" style="background:rgba(239,68,68,0.1)">🔔</div>
+              Alertas por Prioridade
+            </div>
+          </div>
+          <div class="chart-wrap" style="height:220px">
+            <canvas id="chart-prioridade"></canvas>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <div class="panel-title-icon" style="background:rgba(16,185,129,0.1)">📈</div>
+              Ops por Cliente
+            </div>
+          </div>
+          <div class="chart-wrap" style="height:220px">
+            <canvas id="chart-clientes"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- TABLE + ALERTS -->
+      <div class="section-grid">
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <div class="panel-title-icon" style="background:rgba(6,182,212,0.1)">◈</div>
+              Últimas Operações
+            </div>
+            <span class="panel-badge" id="ops-count">0 registros</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Cliente</th>
+                  <th>Tipo</th>
+                  <th>Status</th>
+                  <th>Prioridade</th>
+                  <th>Atualização</th>
+                </tr>
+              </thead>
+              <tbody id="ops-tbody">
+                <tr>
+                  <td colspan="6">
+                    <div class="loading-state">
+                      <div class="spinner"></div> Carregando operações...
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <div class="panel-title-icon" style="background:rgba(239,68,68,0.1)">⚠</div>
+              Feed de Alertas
+            </div>
+            <span class="panel-badge" id="alertas-count">0 alertas</span>
+          </div>
+          <div class="panel-body" id="alerts-feed">
+            <div class="loading-state">
+              <div class="spinner"></div> Carregando alertas...
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- MINI METRICS -->
+      <div class="panel" style="margin-bottom:24px">
+        <div class="mini-metrics">
+          <div class="mini-metric">
+            <div class="mini-val" style="color:var(--accent-cyan)" id="mm-total">—</div>
+            <div class="mini-lbl">Total Operações</div>
+          </div>
+          <div class="mini-metric">
+            <div class="mini-val" style="color:var(--accent-amber)" id="mm-pendente">—</div>
+            <div class="mini-lbl">Pendentes</div>
+          </div>
+          <div class="mini-metric">
+            <div class="mini-val" style="color:var(--accent-red)" id="mm-erro">—</div>
+            <div class="mini-lbl">Com Erro</div>
+          </div>
+          <div class="mini-metric">
+            <div class="mini-val" style="color:var(--accent-purple)" id="mm-critica">—</div>
+            <div class="mini-lbl">Prioridade Crítica</div>
+          </div>
+          <div class="mini-metric">
+            <div class="mini-val" style="color:var(--accent-green)" id="mm-enviados">—</div>
+            <div class="mini-lbl">Alertas Enviados</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </main>
+</div><!-- /app -->
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+<!-- Script principal -->
+<script src="script.js"></script>
+</body>
+</html>

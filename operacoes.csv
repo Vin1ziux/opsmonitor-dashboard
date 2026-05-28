@@ -1,0 +1,5 @@
+id,cliente_id,tipo,status,prioridade,ultima_atualizacao
+1,1,Servidor,Operacional,Alta,2026-05-23
+2,1,API,Instável,Crítica,2026-05-23
+3,2,Banco de Dados,Operacional,Alta,2026-05-22
+4,3,Gateway,Offline,Crítica,2026-05-23
